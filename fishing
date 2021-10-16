@@ -1,0 +1,185 @@
+/*:
+ * @plugindesc 一款简单的钓鱼插件
+ * @author  夏目漠漠
+ * @help  
+ * ================================================================================
+ * +++ XM - Fishing  (1.0) +++
+ * By 夏目漠漠
+ * ================================================================================
+ * 这是一个简单的钓鱼插件
+ * 第一步:基础设置 设置你的鱼竿以及该鱼竿在某地图某区域
+ * 能钓到什么鱼和鱼的概率
+ * 接着设置钓鱼类型 开始钓鱼玩家头上会出现一个仪表
+ * 自动钓鱼则是 仪表倒计时后自动获得鱼
+ * 互动钓鱼则是 玩家在规定时间在仪表内滑动条到指定位置按确定键
+ * 钓鱼时间以秒为单位
+ *
+ * @param Basic settings
+ * @text 基础设置
+ * @type struct<Basic>[]
+ * @desc 设置
+ * @default
+ * 
+ * @param Type
+ * @text 类型
+ * @type combo
+ * @option 自动钓鱼
+ * @option 互动钓鱼
+ * @desc 选择钓鱼的类型
+ * @default 自动钓鱼
+ * 
+ * @param Fishing Time
+ * @text 钓鱼时间
+ * @type number
+ * @min 1
+ * @desc 设置垂钓时间单位s(秒)
+ * @default 1
+ * 
+*/ 
+/*~struct~Basic:
+ * @param Gear
+ * @text 鱼竿
+ * @type weapon
+ * @desc 选择钓鱼的鱼竿
+ * 
+ * @param Fish
+ * @text 鱼
+ * @type struct<Fish>[]
+ * @desc 选择钓上来的鱼
+ *
+ * @param Map
+ * @text 地图
+ * @type number
+ * @min 1
+ * @type struct[]
+ * @desc 地图ID
+ * @default 1
+ *
+ * @param Region
+ * @text 区域
+ * @type number
+ * @min 1
+ * @desc 图块R颜色号码
+ * @default 1
+ */
+/*~struct~Fish:
+ * @param Fish
+ * @text 鱼
+ * @type item
+ * @desc 选择鱼
+ *
+ * @param Probability
+ * @text 概率
+ * @type number
+ * @min 0
+ * @desc 1=1% 概率顺序对应鱼的顺序
+ * @default 
+ *
+ * @param time slot
+ * @text 时间段
+ * @type struct<time>[]
+ *
+ * @param season switch
+ * @text 季节
+ * @type switch
+ * @desc 根据MOG季节开关
+ * @default ["36","37","38","39"]
+*/
+/*~struct~time:
+ * @param hour
+ * @type variable
+ * @parent time
+ * @text 小时
+ * @desc 设定一个时间做为变量
+ * @default 13
+ *
+ * @param min time
+ * @type number
+ * @min 0
+ * @parent time
+ * @text 最小值
+ * @desc 设定当前最小时间值,例如6:00~8:00中的6点
+ * @default 0
+ *
+ * @param max time
+ * @type number
+ * @max 24
+ * @parent time
+ * @text 最大值
+ * @desc 设定当前最大时间值,例如6:00~8:00中的8点
+ * @default 24
+ */
+//=============================================================================
+// ** 插件参数
+//=============================================================================
+　　 var Imported = Imported || {};
+　　 Imported.XM_Fishing = true;
+　 　var XM = XM || {}; 
+    XM.Fishing = {};
+    XM.Fishing.parameters = PluginManager.parameters('XM Fishing');
+    XM.Fishing.Data.Basicsettings = eval(XM.Fishing.parameters['Basic settings']) || [];
+    XM.Fishing.Data.timeslot  = eval(XM.Fishing.parameters['time slot']) || [];
+    XM.Fishing.FishingTime = Number(XM.Fishing.parameters['Fishing Time'] || 1);
+    XM.Fishing.Probability = Number(XM.Fishing.parameters['Probability'] || 1);
+    XM.Fishing.hourvariableId = Number(XM.Fishing.parameters['hour'] || 13);
+    XM.Fishing.hourmin = Number(XM.Fishing.parameters['min time'] || 0);
+    XM.Fishing.hourmax = Number(XM.Fishing.parameters['max time'] || 24);
+    XM.Fishing.Gear = DataManager.loadDatabase = function() {
+		 XM.Fishing.LoadData.call(this);
+    this.loadFishingData();
+};
+//==================================================================================
+//                                地图ID判断与R区域
+//==================================================================================
+if( XM.Fishing.parameters['Map'] != "" ){
+		XM.Fishing_MapIds = (JSON.parse( XM.Fishing.parameters['Map'])).map(function(n){ return Number(n) });;
+	}else{
+		XM.Fishing_MapIds = ([]).map(function(n){ return Number(n) }); ;
+	}//   地图ID判定
+	if( XM.Fishing.parameters['Region'] != "" ){
+		XM.Fishing_areaIds = (JSON.parse( XM.Fishing.parameters['Region'])).map(function(n){ return Number(n) });;
+	}else{
+		XM.Fishing_areaIds = ([]).map(function(n){ return Number(n) }); ;
+	}//   地图R判定
+
+if( XM.Fishing.parameters['season switch'] != "" ){
+		XM.Fishing.season_switches = JSON.parse(XM.Fishing.parameters['season switch']);
+	}else{
+		XM.Fishing.season_switches = ["36","37","38","39"] ;
+	} //   开关
+
+//==================================================================================
+//                                概率
+//==================================================================================
+
+for (var i = 1; i <= XM.Fishing_Region; i++) { 
+	if( XM.Fishing.parameters['Region'] && XM.Fishing.parameters['Gear']){
+
+var getRandom = function(pro){ 
+    var pro = pro * 0.01 || 1;
+    var odds = Math.floor(Math.random()*100);
+ 
+    if(pro === 1){return 1};
+    if(odds < pro){ 
+        return 1;
+    }else{
+        return 0;
+    }
+   }
+ }
+var arr0 = [], arr1 = [];
+var a;
+for(var i=0; i< 100; i++){ 
+    a = getRandom(XM.Fishing.Probability);
+    if(a == 1){
+        arr1.push(a);
+    }else{
+        arr0.push(a);
+    }
+}
+}
+//==================================================================================
+//                                * 插件指令
+//==================================================================================
+
+   
